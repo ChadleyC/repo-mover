@@ -2,6 +2,22 @@
   "name": "repo-mover",
   "version": "1.0.0",
   "description": "Bitbucket to GitHub migration tool",
+  "author": "chadleyclark@gmail.com",
+  "repository": "https://github.com/ChadleyC/repo-mover",
+  "homepage": "https://github.com/ChadleyC/repo-mover#readme",
+  "bugs": "https://github.com/ChadleyC/repo-mover/issues",
+  "keywords": [
+    "bitbucket",
+    "github",
+    "migration",
+    "git",
+    "cli"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "dist/index.js",
   "bin": {
     "repo-mover": "./dist/index.js"
@@ -11,7 +27,8 @@
     "build": "tsc",
     "lint": "tsc --noEmit",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@types/cli-progress": "^3.11.6",

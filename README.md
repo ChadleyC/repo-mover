@@ -13,32 +13,22 @@ A CLI tool to migrate repositories from Bitbucket to GitHub with ease. It perfor
 
 ## Prerequisites
 
-- **Node.js**: v18 or higher.
+- **Node.js**: v20 or higher.
 - **Git**: Installed and configured in your PATH.
 - **Bitbucket App Password**: With `Repository: Read` permissions.
 - **GitHub Personal Access Token (PAT)**: With `repo` and `delete_repo` (if rollback/overwrite is needed) permissions.
 
 ## Installation
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/your-org/repo-mover.git
-   cd repo-mover
-   ```
+Install `repo-mover` globally via npm:
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Build the project:
-   ```bash
-   npm run build
-   ```
+```bash
+npm install -g repo-mover
+```
 
 ## Configuration
 
-Create a `.env` file in the root directory (you can use `.env.example` as a template):
+Create a `.env` file in your current working directory:
 
 ```env
 BITBUCKET_TOKEN=your_bitbucket_app_password
@@ -55,7 +45,7 @@ TEMP_DIR=./temp_migration
 To start the migration process:
 
 ```bash
-npm start migrate
+repo-mover migrate
 ```
 
 ### Options
@@ -63,7 +53,7 @@ npm start migrate
 - `--yes`: Skip all confirmation prompts and use default actions (skips existing repositories).
 
 ```bash
-npm start migrate -- --yes
+repo-mover migrate --yes
 ```
 
 ## Development
