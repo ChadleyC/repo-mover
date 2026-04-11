@@ -1,0 +1,35 @@
+{
+  "name": "repo-mover",
+  "version": "1.0.0",
+  "description": "Bitbucket to GitHub migration tool",
+  "main": "dist/index.js",
+  "bin": {
+    "repo-mover": "./dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/inquirer": "^9.0.9",
+    "bitbucket": "^2.10.1",
+    "chalk": "^5.3.0",
+    "cli-progress": "^3.12.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "inquirer": "^13.4.1",
+    "octokit": "^3.1.2",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
