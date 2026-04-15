@@ -175,7 +175,7 @@ export class GitEngineService {
     });
 
     const rmCommand = largeFiles
-      .map(f => `git rm --cached --ignore-unmatch "${f.replace(/"/g, '\\"')}"`)
+      .map(f => `git rm --cached --ignore-unmatch '${f.replace(/'/g, "'\\''")}'`)
       .join('; ');
 
     await git.raw([
