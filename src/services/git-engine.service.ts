@@ -174,8 +174,12 @@ export class GitEngineService {
       FILTER_BRANCH_SQUELCH_WARNING: '1',
     });
 
+    const escapeArg = (arg: string) => {
+      return "'" + arg.replace(/'/g, "'\\''") + "'";
+    };
+
     const rmCommand = largeFiles
-      .map(f => `git rm --cached --ignore-unmatch "${f.replace(/"/g, '\\"')}"`)
+      .map(f => `git rm --cached --ignore-unmatch -- ${escapeArg(f)}`)
       .join('; ');
 
     await git.raw([
