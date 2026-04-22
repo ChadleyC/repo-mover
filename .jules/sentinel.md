@@ -1,0 +1,4 @@
+## 2024-05-18 - [Command Injection via `git filter-branch --index-filter`]
+**Vulnerability:** A command injection vulnerability existed in `src/services/git-engine.service.ts` because the `rmCommand` was built using double quotes to enclose filenames without escaping shell metacharacters like `$`, `` ` ``, etc., which are evaluated by the shell spawned by `git filter-branch`.
+**Learning:** `git filter-branch` evaluates its `--index-filter` string by passing it to the shell. This means filenames containing shell metacharacters, or characters like `$`, could be executed as commands or substituted.
+**Prevention:** Always enclose paths and arguments in single quotes when passing to a shell context (like `filter-branch --index-filter`), safely escape internal single quotes (`'\\''`), and use `--` to indicate the end of options to prevent option injection.
