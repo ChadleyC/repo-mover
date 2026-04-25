@@ -1,0 +1,4 @@
+## 2024-05-24 - Command Injection in Git Filter-Branch
+**Vulnerability:** In `git-engine.service.ts`, `git filter-branch` command evaluates user-provided file names directly into a bash shell execution context without proper quoting and option termination. The files are enclosed in double-quotes and lack the `--` separator, making it susceptible to option injection and command injection if a repository contains maliciously named files (e.g., `; rm -rf /`).
+**Learning:** `git filter-branch` evaluates its arguments using a shell. Even if wrapped in quotes, double quotes can still be broken out of or evaluate variables. When generating shell commands programmatically that handle untrusted filenames, strict enclosure and escaping is necessary.
+**Prevention:** Always use single quotes to enclose file names for shell commands, escape any internal single quotes correctly (`'\\''`), and prefix file names with `--` to signify the end of command-line options.
