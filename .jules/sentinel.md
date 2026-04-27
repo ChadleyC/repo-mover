@@ -1,0 +1,4 @@
+## 2024-06-25 - Command Injection via git filter-branch
+**Vulnerability:** The `git-engine.service.ts` constructed a shell command string using double quotes for filenames: `git rm --cached --ignore-unmatch "${f.replace(/"/g, '\\"')}"`. This allowed for command injection if a filename contained shell metacharacters like `$()`, backticks, or other constructs that the shell evaluates inside double quotes. Additionally, a filename starting with `-` could be treated as an option flag.
+**Learning:** Even when variables are escaped, using double quotes in dynamically constructed shell commands is unsafe because the shell still evaluates certain metacharacters inside them.
+**Prevention:** Always use single quotes for variables in dynamically constructed shell commands. Escape any internal single quotes appropriately (e.g., `'\\''`). Use `--` before passing file paths to indicate the end of options and prevent option injection.
