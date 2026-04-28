@@ -6,14 +6,6 @@ export interface RepositoryMetadata {
   cloneUrl: string;
 }
 
-export interface MigrationState {
-  status: 'pending' | 'in-progress' | 'completed' | 'failed';
-  repository: RepositoryMetadata;
-  error?: string;
-  startTime?: Date;
-  endTime?: Date;
-}
-
 export interface BitbucketConfig {
   token: string;
   workspace: string;
