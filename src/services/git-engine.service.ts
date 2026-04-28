@@ -174,13 +174,10 @@ export class GitEngineService {
       FILTER_BRANCH_SQUELCH_WARNING: '1',
     });
 
-    const escapeArg = (arg: string) => {
-      return "'" + arg.replace(/'/g, "'\\''") + "'";
-    };
-
+    // Security: Prevent command and option injection when dynamically constructing shell commands.
+    // User-provided paths are enclosed in single quotes, safely escape internal single quotes, and prefixed with '--'.
     const rmCommand = largeFiles
-      .map(f => `git rm --cached --ignore-unmatch -- ${escapeArg(f)}`)
-      .map(f => `git rm --cached --ignore-unmatch '${f.replace(/'/g, "'\\''")}'`)
+      .map(f => `git rm --cached --ignore-unmatch -- '${f.replace(/'/g, "'\\''")}'`)
       .join('; ');
 
     await git.raw([
