@@ -1,3 +1,8 @@
+## 2024-04-24 - Command Injection in Git Filter Branch
+
+**Vulnerability:** Command and option injection was possible in `git-engine.service.ts` because repository file names were passed dynamically into a shell command for `git filter-branch --index-filter` using double quotes (`"..."`). This allows internal execution of commands like `$()` or option injection if a file starts with `--`.
+**Learning:** Double quotes do not prevent the shell from evaluating variables and command substitutions. Building shell commands with unsanitized user input is extremely dangerous, even in a locally executed migration script, if the input includes unexpected shell characters.
+**Prevention:** Always use single quotes (`'...'`) when passing file names to shell commands, safely escape internal single quotes by replacing them with `'\''`, and use `--` to indicate the end of options before passing file paths (e.g., `git rm --cached --ignore-unmatch -- 'filename'`).
 ## 2024-05-24 - [Command Injection] Fix command injection in git-engine.service.ts
 **Vulnerability:** The `git-engine.service.ts` file constructed a shell command (`git rm ...`) using string concatenation with double quotes around the file path: `git rm --cached --ignore-unmatch "${f.replace(/"/g, '\\"')}"`. If a repository contained a file with shell metacharacters (e.g., `$(rm -rf /)` or backticks), the shell would execute that command when `git filter-branch` evaluated the string, leading to command injection.
 **Learning:** Even when wrapping variables in quotes, double quotes in shell scripts allow command substitution. User-controlled or repository-controlled strings must never be evaluated inside double quotes in a shell context without absolute certainty they are safe.
