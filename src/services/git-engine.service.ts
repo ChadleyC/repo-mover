@@ -143,13 +143,13 @@ export class GitEngineService {
 
     if (largeHashes.size === 0) return [];
 
-    const revList = await git.raw(['rev-list', '--objects', '--all']);
+    const revList = await git.raw(['rev-list', '--objects', '-z', '--all']);
     const largePaths = new Set<string>();
-    for (const line of revList.split('\n')) {
+    for (const line of revList.split('\0')) {
       const spaceIdx = line.indexOf(' ');
       if (spaceIdx === -1) continue;
       const hash = line.slice(0, spaceIdx);
-      const filePath = line.slice(spaceIdx + 1).trim();
+      const filePath = line.slice(spaceIdx + 1);
       if (filePath && largeHashes.has(hash)) {
         largePaths.add(filePath);
       }
@@ -174,6 +174,8 @@ export class GitEngineService {
       FILTER_BRANCH_SQUELCH_WARNING: '1',
     });
 
+    // Security: Prevent command and option injection when dynamically constructing shell commands.
+    // User-provided paths are enclosed in single quotes, safely escape internal single quotes, and prefixed with '--'.
     const rmCommand = largeFiles
       .map(f => `git rm --cached --ignore-unmatch -- '${f.replace(/'/g, "'\\''")}'`)
       .join('; ');
