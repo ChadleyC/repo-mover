@@ -1,3 +1,7 @@
+## 2024-05-30 - Command Injection in Git Filter-Branch
+**Vulnerability:** The `git-engine.service.ts` constructed a shell command string for `git filter-branch` using double quotes and directly interpolating user-provided filenames, making it vulnerable to command and option injection.
+**Learning:** Shell evaluation inside `git filter-branch` requires strict quoting. Even if child_process.spawn handles array arguments safely, string-based sub-commands executed by a shell inside the spawned process are vulnerable.
+**Prevention:** Always enclose dynamically injected filenames in single quotes, properly escape any internal single quotes as `'\''`, and use `--` to indicate the end of command options.
 ## 2024-05-18 - Command and Option Injection in `git filter-branch`
 **Vulnerability:** Constructing a shell command with user input inside double quotes allows shell variable expansion and command substitution. Also, files starting with `-` could be passed to `git rm` as unintended options, causing option injection.
 **Learning:** Shell interpreters interpolate values inside double quotes before execution. Option parsers may treat arguments with leading dashes as flags unless explicitly told not to.
