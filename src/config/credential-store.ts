@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, chmodSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -21,8 +21,7 @@ export function loadSavedCredentials(): SavedCredentials {
 
 export function saveCredentials(creds: SavedCredentials): void {
   if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
+    mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
   }
-  writeFileSync(CONFIG_FILE, JSON.stringify(creds, null, 2), 'utf-8');
-  chmodSync(CONFIG_FILE, 0o600); // owner read/write only
+  writeFileSync(CONFIG_FILE, JSON.stringify(creds, null, 2), { encoding: 'utf-8', mode: 0o600 });
 }
