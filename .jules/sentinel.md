@@ -54,3 +54,8 @@
 **Learning:** Shell-escaping strings correctly is extremely tricky and relying on double quotes is insufficient as bash still expands `$()` and backticks within double-quoted strings. Passing dynamically-constructed scripts via string concatenation into `bash -c` or similar functions (such as the `index-filter` argument of `filter-branch`) is high risk.
 
 **Prevention:** To prevent command injection in bash scripts constructed via strings, variables should be enclosed in single quotes `''`, with any embedded single quotes properly escaped as `'\''`. Additionally, command-line flags should be terminated with `--` before injecting variable arguments to avoid option injection (e.g. filenames starting with `-`).
+
+## 2024-05-18 - [Secure Git Credential Passing]
+**Vulnerability:** API tokens for Bitbucket and GitHub were interpolated directly into git remote URLs, exposing them in process tables (`ps aux`) and potentially in git system logs.
+**Learning:** `simple-git` defaults to blocking unsafe custom credential helpers. To use environment variables securely with `simple-git`, you must pass `unsafe: { allowUnsafeCredentialHelper: true }` alongside `config: ['credential.helper=...']` and `.env({...})`.
+**Prevention:** Never construct remote URLs with inline credentials. Always use `credential.helper` logic referencing secure environment variables.
