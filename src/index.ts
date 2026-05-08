@@ -154,19 +154,19 @@ program
           await github.createRepository(githubOptions);
           repoCreated = true;
           
-          // Construct target URL for GitHub with authentication
-          const targetUrl = `https://x-access-token:${config.github.token}@github.com/${targetOwner}/${githubOptions.name}.git`;
+          // Construct target URL for GitHub without embedded authentication (to prevent process list exposure)
+          const targetUrl = `https://github.com/${targetOwner}/${githubOptions.name}.git`;
           const onProgress = (msg: string) => reporter.log(chalk.dim(`  ${msg}`));
           
           // Mirror the repository — detects large files before pushing
           try {
-            await gitEngine.mirror(repo, targetUrl, config.bitbucket.token, onProgress);
+            await gitEngine.mirror(repo, targetUrl, config.bitbucket.token, config.github.token, onProgress);
           } catch (err) {
             if (err instanceof LargeFilesError) {
               const { action, selectedFiles } = await prompts.resolveLargeFiles(repo.name, err.files, lfsAvailable);
               if (action === 'lfs') {
                 reporter.info(`Migrating ${repo.name} to Git LFS…`);
-                await gitEngine.migrateWithLfs(repo, targetUrl, onProgress);
+                await gitEngine.migrateWithLfs(repo, targetUrl, config.github.token, onProgress);
               } else if (action === 'skip') {
                 reporter.info(`Skipping ${repo.name} — large files not stripped.`);
                 if (repoCreated) await cleanup.rollbackGithubRepo(githubOptions.name);
@@ -175,10 +175,10 @@ program
                 continue;
               } else if (action === 'select') {
                 reporter.info(`Removing ${selectedFiles!.length} selected file(s) from ${repo.name} history…`);
-                await gitEngine.stripAndPush(repo, targetUrl, onProgress, selectedFiles);
+                await gitEngine.stripAndPush(repo, targetUrl, config.github.token, onProgress, selectedFiles);
               } else {
                 reporter.info(`Stripping all large files from ${repo.name} history…`);
-                await gitEngine.stripAndPush(repo, targetUrl, onProgress);
+                await gitEngine.stripAndPush(repo, targetUrl, config.github.token, onProgress);
               }
             } else {
               throw err;
