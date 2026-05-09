@@ -54,23 +54,28 @@ export class GitEngineService {
     source: RepositoryMetadata,
     targetUrl: string,
     sourceToken: string,
+    targetToken: string,
     onProgress?: ProgressCallback,
   ): Promise<void> {
     const repoDir = path.join(this.tempDir, `${source.name}.git`);
     await fs.mkdir(this.tempDir, { recursive: true });
 
-    const authenticatedSourceUrl = this.getAuthenticatedSourceUrl(source.cloneUrl, sourceToken);
+    // Use configuration injection instead of embedded credentials in URL
 
     onProgress?.(`[${source.name}] Starting clone from Bitbucket…`);
     const cloneGit = simpleGit({
+      config: [
+        'credential.helper=',
+        'credential.helper=!f() { echo "username=x-bitbucket-api-token-auth"; echo "password=$BITBUCKET_TOKEN"; }; f'
+      ],
       ...BASE_GIT_OPTIONS,
       progress({ method, stage, progress, processed, total }) {
         const count = total ? ` (${processed}/${total})` : '';
         onProgress?.(`[${source.name}] ${method}: ${stage} ${progress}%${count}`);
       },
-    }).env(GIT_ENV);
+    }).env({ ...GIT_ENV, BITBUCKET_TOKEN: sourceToken });
 
-    await cloneGit.clone(authenticatedSourceUrl, repoDir, ['--mirror', '--progress']);
+    await cloneGit.clone(source.cloneUrl, repoDir, ['--mirror', '--progress']);
 
     onProgress?.(`[${source.name}] Scanning for large files…`);
     const largeFiles = await this.findLargeBlobs(repoDir);
@@ -79,7 +84,7 @@ export class GitEngineService {
     }
 
     onProgress?.(`[${source.name}] Pushing to GitHub…`);
-    await this.push(repoDir, targetUrl, source.name, onProgress);
+    await this.push(repoDir, targetUrl, targetToken, source.name, onProgress);
   }
 
   /**
@@ -88,6 +93,7 @@ export class GitEngineService {
   async migrateWithLfs(
     source: RepositoryMetadata,
     targetUrl: string,
+    targetToken: string,
     onProgress?: ProgressCallback,
   ): Promise<void> {
     const repoDir = path.join(this.tempDir, `${source.name}.git`);
@@ -96,16 +102,16 @@ export class GitEngineService {
     onProgress?.(`${label} Migrating large files to LFS (rewriting history)…`);
     await this.spawnWithProgress(
       'git', ['lfs', 'migrate', 'import', '--everything', `--above=${GITHUB_MAX_FILE_SIZE_STR}`],
-      repoDir, onProgress, label, 1_800_000,
+      repoDir, onProgress, label, 1_800_000
     );
 
     onProgress?.(`${label} Pushing git history to GitHub…`);
-    await this.push(repoDir, targetUrl, source.name, onProgress);
+    await this.push(repoDir, targetUrl, targetToken, source.name, onProgress);
 
     onProgress?.(`${label} Pushing LFS objects to GitHub…`);
     await this.spawnWithProgress(
-      'git', ['lfs', 'push', '--all', targetUrl],
-      repoDir, onProgress, label, 1_800_000,
+      'git', ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f', 'lfs', 'push', '--all', targetUrl],
+      repoDir, onProgress, label, 1_800_000, { GITHUB_TOKEN: targetToken }
     );
   }
 
@@ -116,6 +122,7 @@ export class GitEngineService {
   async stripAndPush(
     source: RepositoryMetadata,
     targetUrl: string,
+    targetToken: string,
     onProgress?: ProgressCallback,
     filesToStrip?: string[],
   ): Promise<void> {
@@ -123,7 +130,7 @@ export class GitEngineService {
     await this.stripLargeFiles(repoDir, source.name, onProgress, filesToStrip);
 
     onProgress?.(`[${source.name}] Pushing to GitHub…`);
-    await this.push(repoDir, targetUrl, source.name, onProgress);
+    await this.push(repoDir, targetUrl, targetToken, source.name, onProgress);
   }
 
   async findLargeBlobs(repoDir: string): Promise<string[]> {
@@ -207,17 +214,22 @@ export class GitEngineService {
   private async push(
     repoDir: string,
     targetUrl: string,
+    targetToken: string,
     repoName: string,
     onProgress?: ProgressCallback,
   ): Promise<void> {
     const pushGit = simpleGit({
+      config: [
+        'credential.helper=',
+        'credential.helper=!f() { echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f'
+      ],
       ...BASE_GIT_OPTIONS,
       baseDir: repoDir,
       progress({ method, stage, progress, processed, total }) {
         const count = total ? ` (${processed}/${total})` : '';
         onProgress?.(`[${repoName}] ${method}: ${stage} ${progress}%${count}`);
       },
-    }).env(GIT_ENV);
+    }).env({ ...GIT_ENV, GITHUB_TOKEN: targetToken });
 
     await pushGit.push(['--mirror', '--progress', targetUrl]);
   }
@@ -230,11 +242,12 @@ export class GitEngineService {
     onProgress?: ProgressCallback,
     label = '',
     timeoutMs = 120_000,
+    extraEnv?: Record<string, string>,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const proc = spawn(cmd, args, {
         cwd,
-        env: { ...process.env, ...GIT_ENV },
+        env: { ...process.env, ...GIT_ENV, ...extraEnv },
       });
 
       let stderrBuf = '';
@@ -269,10 +282,4 @@ export class GitEngineService {
     });
   }
 
-  private getAuthenticatedSourceUrl(url: string, token: string): string {
-    const urlObj = new URL(url);
-    urlObj.username = 'x-bitbucket-api-token-auth';
-    urlObj.password = token;
-    return urlObj.toString();
-  }
 }
