@@ -154,8 +154,8 @@ program
           await github.createRepository(githubOptions);
           repoCreated = true;
           
-          // Construct target URL for GitHub with authentication
-          const targetUrl = `https://x-access-token:${config.github.token}@github.com/${targetOwner}/${githubOptions.name}.git`;
+          // Construct target URL for GitHub without embedded authentication
+          const targetUrl = `https://github.com/${targetOwner}/${githubOptions.name}.git`;
           const onProgress = (msg: string) => reporter.log(chalk.dim(`  ${msg}`));
           
           // Mirror the repository — detects large files before pushing
