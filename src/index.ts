@@ -81,7 +81,7 @@ program
       const cleanup = new CleanupService(config.tempDir, github, reporter);
       const bitbucket = new BitbucketClient();
       const metadataService = new MetadataService();
-      const gitEngine = new GitEngineService(config.tempDir);
+      const gitEngine = new GitEngineService(config.tempDir, config.bitbucket.token, config.github.token);
 
       reporter.info('Fetching repositories from Bitbucket...');
       const allRepositories = await bitbucket.listRepositories();
@@ -154,13 +154,13 @@ program
           await github.createRepository(githubOptions);
           repoCreated = true;
           
-          // Construct target URL for GitHub with authentication
-          const targetUrl = `https://x-access-token:${config.github.token}@github.com/${targetOwner}/${githubOptions.name}.git`;
+          // Construct target URL for GitHub without embedded authentication
+          const targetUrl = `https://github.com/${targetOwner}/${githubOptions.name}.git`;
           const onProgress = (msg: string) => reporter.log(chalk.dim(`  ${msg}`));
           
           // Mirror the repository — detects large files before pushing
           try {
-            await gitEngine.mirror(repo, targetUrl, config.bitbucket.token, onProgress);
+            await gitEngine.mirror(repo, targetUrl, onProgress);
           } catch (err) {
             if (err instanceof LargeFilesError) {
               const { action, selectedFiles } = await prompts.resolveLargeFiles(repo.name, err.files, lfsAvailable);
