@@ -54,3 +54,7 @@
 **Learning:** Shell-escaping strings correctly is extremely tricky and relying on double quotes is insufficient as bash still expands `$()` and backticks within double-quoted strings. Passing dynamically-constructed scripts via string concatenation into `bash -c` or similar functions (such as the `index-filter` argument of `filter-branch`) is high risk.
 
 **Prevention:** To prevent command injection in bash scripts constructed via strings, variables should be enclosed in single quotes `''`, with any embedded single quotes properly escaped as `'\''`. Additionally, command-line flags should be terminated with `--` before injecting variable arguments to avoid option injection (e.g. filenames starting with `-`).
+## 2024-05-27 - [CRITICAL] Credential Exposure in Clone URLs
+**Vulnerability:** Git authentication tokens were directly embedded in the clone URLs passed to Git subcommands (`git clone` and `git push`). This caused the tokens to be exposed in process lists (`ps aux`), shell histories, and potentially logged in terminal output.
+**Learning:** Embedding secrets directly in URLs passed as arguments to child processes is a critical security risk because process arguments are often visible system-wide and in logs.
+**Prevention:** Instead of embedding tokens in URLs, pass tokens via environment variables (e.g., `GIT_SOURCE_TOKEN`) and inject them into Git using the global or local `credential.helper` configuration block. This keeps secrets out of process arguments and URLs.
