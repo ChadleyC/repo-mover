@@ -81,7 +81,7 @@ program
       const cleanup = new CleanupService(config.tempDir, github, reporter);
       const bitbucket = new BitbucketClient();
       const metadataService = new MetadataService();
-      const gitEngine = new GitEngineService(config.tempDir);
+      const gitEngine = new GitEngineService(config.tempDir, config.github.token);
 
       reporter.info('Fetching repositories from Bitbucket...');
       const allRepositories = await bitbucket.listRepositories();
@@ -155,7 +155,7 @@ program
           repoCreated = true;
           
           // Construct target URL for GitHub with authentication
-          const targetUrl = `https://x-access-token:${config.github.token}@github.com/${targetOwner}/${githubOptions.name}.git`;
+          const targetUrl = `https://github.com/${targetOwner}/${githubOptions.name}.git`;
           const onProgress = (msg: string) => reporter.log(chalk.dim(`  ${msg}`));
           
           // Mirror the repository — detects large files before pushing
