@@ -54,3 +54,7 @@
 **Learning:** Shell-escaping strings correctly is extremely tricky and relying on double quotes is insufficient as bash still expands `$()` and backticks within double-quoted strings. Passing dynamically-constructed scripts via string concatenation into `bash -c` or similar functions (such as the `index-filter` argument of `filter-branch`) is high risk.
 
 **Prevention:** To prevent command injection in bash scripts constructed via strings, variables should be enclosed in single quotes `''`, with any embedded single quotes properly escaped as `'\''`. Additionally, command-line flags should be terminated with `--` before injecting variable arguments to avoid option injection (e.g. filenames starting with `-`).
+## 2024-06-26 - [Hardcoded Credentials in URL] Prevent credentials exposure in Git remote URLs
+**Vulnerability:** Embedding credentials directly within Git clone/push URLs (e.g., `https://x-access-token:...@github.com/...`) is highly unsafe as it exposes these tokens to `.git/config` files, logs, stack traces, and system process listings (`ps`).
+**Learning:** Tokens should never be embedded in remote URLs when spawning git processes. Using `-c credential.helper` is the secure way to authenticate dynamically during git operations.
+**Prevention:** Pass authentication tokens securely through environment variables and use inline `credential.helper` scripts (`-c credential.helper='!f() { ... }'`) to supply the username and password to git without writing them to disk or command line arguments.
