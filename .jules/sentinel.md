@@ -54,3 +54,8 @@
 **Learning:** Shell-escaping strings correctly is extremely tricky and relying on double quotes is insufficient as bash still expands `$()` and backticks within double-quoted strings. Passing dynamically-constructed scripts via string concatenation into `bash -c` or similar functions (such as the `index-filter` argument of `filter-branch`) is high risk.
 
 **Prevention:** To prevent command injection in bash scripts constructed via strings, variables should be enclosed in single quotes `''`, with any embedded single quotes properly escaped as `'\''`. Additionally, command-line flags should be terminated with `--` before injecting variable arguments to avoid option injection (e.g. filenames starting with `-`).
+
+## 2024-06-26 - [Credential Exposure] Fix Credential Exposure in Git Remote URLs
+**Vulnerability:** The Git target URL was constructed with an embedded GitHub token (`https://x-access-token:TOKEN@github.com/...`) in `src/index.ts`. Embedding credentials directly into remote URLs is dangerous because they are often cached locally in `.git/config`, displayed in error stack traces, and outputted in Git command logs.
+**Learning:** Storing authentication tokens in Git remote URLs is a pervasive leak vector. Using `simple-git` or raw `git` commands with these URLs puts the credentials at risk in numerous logs and files on the host machine.
+**Prevention:** Always authenticate Git operations using credential helpers (`git config credential.helper`). To prevent tokens from leaking in process listings (e.g., `ps aux`), pass tokens securely via environment variables (e.g., `GITHUB_TOKEN`) and inject them securely using inline shell functions like `credential.helper=!f() { echo "username=x-access-token"; printf "password=%s\n" "$GITHUB_TOKEN"; }; f`.
