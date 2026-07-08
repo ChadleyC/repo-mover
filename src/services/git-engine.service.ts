@@ -31,9 +31,11 @@ export class LargeFilesError extends Error {
 
 export class GitEngineService {
   private tempDir: string;
+  private githubToken?: string;
 
-  constructor(tempDir: string) {
+  constructor(tempDir: string, githubToken?: string) {
     this.tempDir = tempDir;
+    this.githubToken = githubToken;
   }
 
   static async isGitLfsInstalled(): Promise<boolean> {
@@ -59,18 +61,20 @@ export class GitEngineService {
     const repoDir = path.join(this.tempDir, `${source.name}.git`);
     await fs.mkdir(this.tempDir, { recursive: true });
 
-    const authenticatedSourceUrl = this.getAuthenticatedSourceUrl(source.cloneUrl, sourceToken);
-
     onProgress?.(`[${source.name}] Starting clone from Bitbucket…`);
     const cloneGit = simpleGit({
       ...BASE_GIT_OPTIONS,
+      config: [
+        'credential.helper=',
+        'credential.helper=!f() { echo "username=x-bitbucket-api-token-auth"; printf "password=%s\\n" "$GIT_BITBUCKET_TOKEN"; }; f'
+      ],
       progress({ method, stage, progress, processed, total }) {
         const count = total ? ` (${processed}/${total})` : '';
         onProgress?.(`[${source.name}] ${method}: ${stage} ${progress}%${count}`);
       },
-    }).env(GIT_ENV);
+    }).env({ ...GIT_ENV, GIT_BITBUCKET_TOKEN: sourceToken });
 
-    await cloneGit.clone(authenticatedSourceUrl, repoDir, ['--mirror', '--progress']);
+    await cloneGit.clone(source.cloneUrl, repoDir, ['--mirror', '--progress']);
 
     onProgress?.(`[${source.name}] Scanning for large files…`);
     const largeFiles = await this.findLargeBlobs(repoDir);
@@ -103,9 +107,15 @@ export class GitEngineService {
     await this.push(repoDir, targetUrl, source.name, onProgress);
 
     onProgress?.(`${label} Pushing LFS objects to GitHub…`);
+
+    const pushEnv: NodeJS.ProcessEnv = this.githubToken ? { GIT_GITHUB_TOKEN: this.githubToken } : {};
+    const pushArgs = this.githubToken
+      ? ['-c', 'credential.helper=', '-c', 'credential.helper=!f() { echo "username=x-access-token"; printf "password=%s\\n" "$GIT_GITHUB_TOKEN"; }; f', 'lfs', 'push', '--all', targetUrl]
+      : ['lfs', 'push', '--all', targetUrl];
+
     await this.spawnWithProgress(
-      'git', ['lfs', 'push', '--all', targetUrl],
-      repoDir, onProgress, label, 1_800_000,
+      'git', pushArgs,
+      repoDir, onProgress, label, 1_800_000, pushEnv
     );
   }
 
@@ -210,14 +220,22 @@ export class GitEngineService {
     repoName: string,
     onProgress?: ProgressCallback,
   ): Promise<void> {
+    const gitConfig = this.githubToken ? [
+      'credential.helper=',
+      'credential.helper=!f() { echo "username=x-access-token"; printf "password=%s\\n" "$GIT_GITHUB_TOKEN"; }; f'
+    ] : [];
+
+    const envOverrides = this.githubToken ? { GIT_GITHUB_TOKEN: this.githubToken } : {};
+
     const pushGit = simpleGit({
       ...BASE_GIT_OPTIONS,
       baseDir: repoDir,
+      config: gitConfig,
       progress({ method, stage, progress, processed, total }) {
         const count = total ? ` (${processed}/${total})` : '';
         onProgress?.(`[${repoName}] ${method}: ${stage} ${progress}%${count}`);
       },
-    }).env(GIT_ENV);
+    }).env({ ...GIT_ENV, ...envOverrides });
 
     await pushGit.push(['--mirror', '--progress', targetUrl]);
   }
@@ -230,11 +248,12 @@ export class GitEngineService {
     onProgress?: ProgressCallback,
     label = '',
     timeoutMs = 120_000,
+    envOverrides?: NodeJS.ProcessEnv,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const proc = spawn(cmd, args, {
         cwd,
-        env: { ...process.env, ...GIT_ENV },
+        env: { ...process.env, ...GIT_ENV, ...envOverrides },
       });
 
       let stderrBuf = '';
@@ -269,10 +288,4 @@ export class GitEngineService {
     });
   }
 
-  private getAuthenticatedSourceUrl(url: string, token: string): string {
-    const urlObj = new URL(url);
-    urlObj.username = 'x-bitbucket-api-token-auth';
-    urlObj.password = token;
-    return urlObj.toString();
-  }
 }
